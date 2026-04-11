@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Crediticio — Evaluador de Riesgo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── Navegación ── -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('consulta')">Consulta rápida</button>
+    <button class="nav-tab"        onclick="switchTab('registro')">Registro de cliente</button>
+    <button class="nav-tab"        onclick="switchTab('historial')">Historial</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PESTAÑA 1 — CONSULTA RÁPIDA
+  ══════════════════════════════════════════════════════════ -->
+  <div id="tab-consulta" class="tab-panel active">
+
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">Consultoría rápida de riesgo</div>
+        <div class="hdr-sub">Ajusta los sliders para ver el riesgo en tiempo real</div>
+      </div>
+      <span class="pill pill-blue">XGBoost · AUC 0.72</span>
+    </div>
+
+    <div class="sec-lbl">Perfil del solicitante</div>
+
+    <!-- Fila 1: edad y meses empleado -->
+    <div class="g2">
+      <div class="slider-row">
+        <div class="slider-lbl">
+          <span class="tooltip-wrap">
+            Edad
+            <span class="info-icon">?</span>
+            <span class="tooltip-box">Edad del solicitante en años. El modelo considera edades de 18 a 85 años. A mayor edad, ligero menor riesgo estadístico.</span>
+          </span>
+          <span class="slider-val" id="q-age-v">45 años</span>
+        </div>
+        <input type="range" min="18" max="85" value="45" step="1" id="q-age" oninput="qCompute()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">
+          <span class="tooltip-wrap">
+            Meses empleado
+            <span class="info-icon">?</span>
+            <span class="tooltip-box">Tiempo continuo en el empleo actual. Mayor estabilidad laboral reduce el riesgo de default. 0 = desempleado o recién contratado.</span>
+          </span>
+          <span class="slider-val" id="q-emp-v">60 meses</span>
+        </div>
+        <input type="range" min="0" max="240" value="60" step="1" id="q-emp" oninput="qCompute()">
+      </div>
+    </div>
+
+    <!-- Fila 2: ingreso, monto, créditos -->
+    <div class="g3">
+      <div class="slider-row">
+        <div class="slider-lbl">
+          <span class="tooltip-wrap">
+            Ingreso anual
+            <span class="info-icon">?</span>
+            <span class="tooltip-box">Ingreso bruto anual en USD. A mayor ingreso, mayor capacidad de pago y menor probabilidad de default.</span>
+          </span>
+          <span class="slider-val" id="q-inc-v">$60,000</span>
+        </div>
+        <input type="range" min="10000" max="200000" value="60000" step="500" id="q-inc" oninput="qCompute()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">
+          <span class="tooltip-wrap">
+            Monto préstamo
+            <span class="info-icon">?</span>
+            <span class="tooltip-box">Capital total solicitado en USD. Montos altos respecto al ingreso elevan la razón deuda-ingreso y el riesgo.</span>
+          </span>
+          <span class="slider-val" id="q-loan-v">$50,000</span>
+        </div>
+        <input type="range" min="1000" max="200000" value="50000" step="500" id="q-loan" oninput="qCompute()">
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">
+          <span class="tooltip-wrap">
+            Créditos activos
+            <span class="info-icon">?</span>
+            <span class="tooltip-box">Número de líneas de crédito abiertas (tarjetas, préstamos personales, automotrices, etc.). Muchas líneas activas pueden indicar mayor exposición al riesgo.</span>
+          </span>
+          <span class="slider-val" id="q-cred-v">3</span>
+        </div>
+        <input type="range" min="0" max="10" value="3" step="1" id="q-cred" oninput="qCompute()">
+      </div>
+    </div>
+
+    <!-- Fila 3: credit score -->
+    <div class="slider-row">
+      <div class="slider-lbl">
+        <span class="tooltip-wrap">
+          Credit score
+          <span class="info-icon">?</span>
+          <span class="tooltip-box">Puntaje crediticio de 300 a 850. Mide historial de pagos, nivel de deuda y antigüedad crediticia. 300–579 Deficiente · 580–669 Regular · 670–739 Bueno · 740–850 Excelente.</span>
+        </span>
+        <span class="slider-val" id="q-cs-v">650 — Bueno</span>
+      </div>
+      <input type="range" min="300" max="850" value="650" step="1" id="q-cs" oninput="qCompute()">
+    </div>
+
+    <div class="divider"></div>
+    <div id="q-result"></div>
+
+    <div class="divider"></div>
+    <div class="sec-lbl">Métricas del modelo (test set · 51,070 registros)</div>
+    <div class="metrics-g">
+      <div class="mcard"><div class="ml">Accuracy (XGB)</div><div class="mn">67.1%</div></div>
+      <div class="mcard"><div class="ml">AUC (XGB)</div><div class="mn">0.720</div></div>
+      <div class="mcard"><div class="ml">Recall (XGB)</div><div class="mn">64.7%</div></div>
+      <div class="mcard"><div class="ml">Defaults en dataset</div><div class="mn">11.6%</div></div>
+    </div>
+
+  </div><!-- /tab-consulta -->
+
+  <!-- ══════════════════════════════════════════════════════════
+       PESTAÑA 2 — REGISTRO DE CLIENTE
+  ══════════════════════════════════════════════════════════ -->
+  <div id="tab-registro" class="tab-panel">
+
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">Registro de cliente</div>
+        <div class="hdr-sub">Ingresa los datos completos · genera expediente y análisis IA</div>
+      </div>
+      <span class="pill pill-green">Base de datos</span>
+    </div>
+
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step active" id="rs1"><div class="snum">1</div>Datos</div>
+      <div class="step"        id="rs2"><div class="snum">2</div>Evaluación</div>
+      <div class="step"        id="rs3"><div class="snum">3</div>Confirmación</div>
+    </div>
+
+    <!-- Paso 1: formulario -->
+    <div class="page" id="rp1">
+      <div class="form-card">
+        <div class="sec-lbl" style="margin-top:0">Información personal</div>
+        <div class="g2">
+          <div class="field" id="rf-nombre">
+            <label>Nombre completo</label>
+            <input type="text" id="r-nombre" placeholder="Ej. María López" oninput="rClear('rf-nombre')">
+            <span class="err">Campo requerido</span>
+          </div>
+          <div class="field" id="rf-age">
+            <label>Edad</label>
+            <input type="number" id="r-age" placeholder="18 – 85" min="18" max="85" oninput="rClear('rf-age')">
+            <span class="hint">Rango válido: 18 a 85 años</span>
+            <span class="err">Edad inválida (18–85)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="sec-lbl" style="margin-top:0">Perfil financiero</div>
+        <div class="g2">
+          <div class="field" id="rf-income">
+            <label>
+              <span class="tooltip-wrap">Ingreso anual (USD)
+                <span class="info-icon">?</span>
+                <span class="tooltip-box">Ingreso bruto anual del solicitante en dólares. Incluye salario base y cualquier ingreso recurrente comprobable.</span>
+              </span>
+            </label>
+            <input type="number" id="r-income" placeholder="Ej. 60000" min="1000" oninput="rClear('rf-income')">
+            <span class="err">Ingreso inválido</span>
+          </div>
+          <div class="field" id="rf-loan">
+            <label>
+              <span class="tooltip-wrap">Monto del préstamo (USD)
+                <span class="info-icon">?</span>
+                <span class="tooltip-box">Capital total que el cliente desea solicitar. Se compara con su ingreso para calcular la razón deuda-ingreso.</span>
+              </span>
+            </label>
+            <input type="number" id="r-loan" placeholder="Ej. 50000" min="1000" oninput="rClear('rf-loan')">
+            <span class="err">Monto inválido</span>
+          </div>
+        </div>
+        <div class="g3">
+          <div class="field" id="rf-cs">
+            <label>
+              <span class="tooltip-wrap">Credit score
+                <span class="info-icon">?</span>
+                <span class="tooltip-box">Puntaje de 300–850 que resume el historial crediticio. 300–579 Deficiente · 580–669 Regular · 670–739 Bueno · 740–850 Excelente.</span>
+              </span>
+            </label>
+            <input type="number" id="r-cs" placeholder="300 – 850" min="300" max="850" oninput="rClear('rf-cs')">
+            <span class="err">Score inválido (300–850)</span>
+          </div>
+          <div class="field" id="rf-emp">
+            <label>
+              <span class="tooltip-wrap">Meses empleado
+                <span class="info-icon">?</span>
+                <span class="tooltip-box">Meses continuos en el empleo actual. Refleja estabilidad laboral. 0 = desempleado o recién ingresado.</span>
+              </span>
+            </label>
+            <input type="number" id="r-emp" placeholder="Ej. 60" min="0" oninput="rClear('rf-emp')">
+            <span class="err">Valor inválido</span>
+          </div>
+          <div class="field" id="rf-cred">
+            <label>
+              <span class="tooltip-wrap">Líneas de crédito
+                <span class="info-icon">?</span>
+                <span class="tooltip-box">Total de créditos abiertos: tarjetas, préstamos personales, automotrices, etc. Más líneas abiertas = mayor exposición crediticia.</span>
+              </span>
+            </label>
+            <input type="number" id="r-cred" placeholder="0 – 20" min="0" max="20" oninput="rClear('rf-cred')">
+            <span class="err">Debe ser 0–20</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button onclick="rDemo()">Cargar ejemplo</button>
+        <button class="btn-p" onclick="rEval()">Evaluar y continuar →</button>
+      </div>
+    </div><!-- /rp1 -->
+
+    <!-- Paso 2: resultado -->
+    <div class="page hidden" id="rp2">
+      <div id="r-result-wrap"></div>
+      <div class="ai-box">
+        <div class="ai-lbl">Análisis interpretativo · IA</div>
+        <div id="r-ai-text">
+          <div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button onclick="rBack()">← Editar datos</button>
+        <button class="btn-p" onclick="rConfirm()">Registrar en base de datos →</button>
+      </div>
+    </div><!-- /rp2 -->
+
+    <!-- Paso 3: confirmación -->
+    <div class="page hidden" id="rp3">
+      <div id="r-confirm-card"></div>
+      <div class="btn-row">
+        <button onclick="rNew()">+ Nuevo cliente</button>
+        <button onclick="switchTab('historial')">Ver historial →</button>
+      </div>
+    </div><!-- /rp3 -->
+
+  </div><!-- /tab-registro -->
+
+  <!-- ══════════════════════════════════════════════════════════
+       PESTAÑA 3 — HISTORIAL
+  ══════════════════════════════════════════════════════════ -->
+  <div id="tab-historial" class="tab-panel">
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">Historial de clientes</div>
+        <div class="hdr-sub">Registros ingresados en esta sesión</div>
+      </div>
+    </div>
+    <div id="hist-wrap">
+      <div class="empty">Aún no hay clientes registrados.</div>
+    </div>
+  </div><!-- /tab-historial -->
+
+</div><!-- /app -->
+
+<script src="app.js"></script>
+</body>
+</html>
