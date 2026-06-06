@@ -1,250 +1,293 @@
-# Sistema Crediticio — FastAPI Backend
-## Guía completa de implementación · Demo académica local
+# CreditMind
 
----
+Prototipo académico para evaluar riesgo de incumplimiento crediticio mediante:
 
-## A) ARQUITECTURA RECOMENDADA
+- Regresión Logística.
+- Random Forest.
+- XGBoost.
+- Red Neuronal.
 
+La aplicación utiliza modelos previamente entrenados. Al ejecutarla, los modelos
+se cargan desde archivos persistidos y **no vuelven a entrenarse**.
+
+## Funciones
+
+- Evaluación de solicitantes.
+- Selección de un modelo o comparación de los cuatro.
+- Probabilidad estimada de default.
+- Decisión orientativa y nivel de riesgo.
+- Métricas por modelo.
+- Matrices de confusión.
+- Importancia e interpretación de variables.
+
+## Archivos en GitHub y Google Drive
+
+El código fuente se almacena en GitHub.
+
+Los archivos pesados se distribuyen mediante Google Drive:
+
+- `Loan_default_limpio.csv`
+- `logistic_regression.pkl`
+- `random_forest.pkl`
+- `xgboost.pkl`
+- `neural_network.pkl`
+
+Enlace de Google Drive:
+
+```text
+REEMPLAZAR_CON_EL_ENLACE_PUBLICO_DE_GOOGLE_DRIVE
 ```
-[Notebook Colab/local]
-        │
-        │  joblib.dump(best_xgb)  ──→  artifacts/model_xgb.pkl
-        │  joblib.dump(best_rf)   ──→  artifacts/model_rf.pkl
-        │  json.dump(FEATURES)    ──→  artifacts/features.json
-        │
-        ▼
-[FastAPI · uvicorn · puerto 8000]
-   POST /predict  ← recibe JSON con 6 features
-   GET  /health   ← verifica que la API está viva
-   GET  /model-info
-        │
-        │  responde JSON en < 50ms
-        ▼
-[Frontend · index.html + app.js]
-   Tab 1: sliders → debounce 250ms → POST /predict → muestra riesgo
-   Tab 2: formulario → POST /predict + análisis IA (Anthropic API)
-   Tab 3: historial de sesión en memoria
+
+## Requisitos
+
+- Python 3.12.
+- PowerShell en Windows.
+- Aproximadamente 500 MB libres para dependencias y artefactos.
+
+Versiones principales:
+
+```text
+scikit-learn 1.8.0
+numpy        2.4.3
+xgboost      3.2.0
 ```
 
----
+## Instalación desde GitHub
 
-## B) ¿POR QUÉ NO ENTRENAR EN TIEMPO REAL?
+### 1. Clonar el repositorio
 
-1. **Tiempo**: GridSearchCV sobre 255k registros tarda minutos. El slider debe
-   responder en < 300ms.
-2. **Recursos**: reentrenar bloquea la CPU de tu máquina y rompe la demo.
-3. **Consistencia**: entrenar en vivo produce modelos distintos cada vez.
-4. **XGBoost no necesita scaler**: es tree-based → el artefacto pesa ~2MB
-   y la inferencia tarda < 2ms.
-
-**Regla de oro**: entrenas una vez, guardas el artefacto, la API solo carga
-y sirve. Es el flujo estándar de MLOps.
-
----
-
-## C) ¿ES NECESARIO DOCKER?
-
-**No para una demo local.** Docker añade 20-30 min de setup, requiere
-instalar Docker Desktop y complica el debug. Úsalo solo si despliegas
-a un servidor externo.
-
-Para esta demo: Python 3.10+ + pip + uvicorn es suficiente.
-
----
-
-## D) ESTRUCTURA DE CARPETAS
-
+```powershell
+git clone https://github.com/Monster8010/Creditmind.git
+cd Creditmind
 ```
-proyecto_crediticio/
-│
-├── artifacts/                  ← artefactos del modelo (generar con notebook)
-│   ├── model_xgb.pkl           ← XGBoost optimizado (AUC 0.720)
-│   ├── model_rf.pkl            ← Random Forest (opcional, para comparar)
-│   └── features.json           ← ['Age','Income','LoanAmount','CreditScore',
-│                                   'MonthsEmployed','NumCreditLines']
-│
+
+También se puede descargar el repositorio desde GitHub usando:
+
+```text
+Code > Download ZIP
+```
+
+Después se extrae el ZIP y se abre PowerShell dentro de la carpeta extraída.
+
+### 2. Descargar los archivos pesados
+
+Descarga `CreditMind_Drive_Package.zip` desde el enlace de Google Drive indicado
+anteriormente.
+
+Extrae el ZIP. Su contenido debe ser:
+
+```text
+Loan_default_limpio.csv
+artifacts/
+├── features.json
+├── model_registry_notebook.json
+└── trained_models/
+    ├── logistic_regression.pkl
+    ├── random_forest.pkl
+    ├── xgboost.pkl
+    └── neural_network.pkl
+```
+
+Copia `Loan_default_limpio.csv` y la carpeta `artifacts` dentro de la carpeta
+del repositorio. Acepta combinar o reemplazar archivos cuando Windows lo
+solicite.
+
+La estructura final debe ser:
+
+```text
+Creditmind/
 ├── app/
-│   └── main.py                 ← FastAPI · endpoints /predict /health /model-info
-│
-├── index.html                  ← frontend (ya existente, no modificar)
-├── styles.css                  ← estilos (ya existente)
-├── app.js                      ← lógica frontend actualizada (reemplazar)
-│
-├── export_artifacts.py         ← copiar+pegar al final del notebook
-├── requirements.txt            ← dependencias Python
-└── README.md                   ← este archivo
+│   └── main.py
+├── artifacts/
+│   ├── features.json
+│   ├── model_registry_notebook.json
+│   └── trained_models/
+│       ├── logistic_regression.pkl
+│       ├── random_forest.pkl
+│       ├── xgboost.pkl
+│       └── neural_network.pkl
+├── Loan_default_limpio.csv
+├── app.js
+├── index.html
+├── styles.css
+├── requirements.txt
+└── README.md
 ```
 
----
+### 3. Crear el entorno virtual
 
-## H) INSTRUCCIONES PASO A PASO
-
-### Paso 1 — Exportar artefactos desde el notebook
-
-Abre tu notebook `Loan_RandomForest_modificado.ipynb` y **pega al final**
-el contenido de `export_artifacts.py` como una nueva celda. Ejecútala.
-
-Verás:
-```
-✓ model_xgb.pkl  guardado
-✓ model_rf.pkl   guardado
-✓ features.json  guardado → ['Age', 'Income', ...]
-✓ Verificación de carga: prob_default = 0.3421
+```powershell
+python -m venv .venv
 ```
 
-Copia la carpeta `artifacts/` a tu carpeta `proyecto_crediticio/`.
+No es obligatorio activar el entorno. Los comandos siguientes llaman
+directamente a su Python.
 
----
+### 4. Instalar dependencias
 
-### Paso 2 — Instalar dependencias del backend
-
-```bash
-cd proyecto_crediticio
-pip install -r requirements.txt
+```powershell
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install --timeout 1000 --retries 10 -r requirements.txt
 ```
 
-> Si usas Conda: `conda activate tu_env` primero.
+Verifica las versiones:
 
----
-
-### Paso 3 — Levantar el backend
-
-```bash
-uvicorn app.main:app --reload --port 8000
+```powershell
+.\.venv\Scripts\python.exe -c "import sklearn, numpy, xgboost; print('sklearn:', sklearn.__version__); print('numpy:', numpy.__version__); print('xgboost:', xgboost.__version__)"
 ```
 
-Verás en terminal:
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-INFO:     ✓ Modelo XGBoost cargado  · features: ['Age', ...]
-```
+## Ejecución
 
-Verifica en el navegador: **http://127.0.0.1:8000/health**
-Documentación automática: **http://127.0.0.1:8000/docs**
+Se necesitan dos terminales abiertas en la carpeta del repositorio.
 
----
+### Terminal 1: backend
 
-### Paso 4 — Abrir el frontend
-
-```bash
-# Opción A: servidor Python simple
-python -m http.server 8080
-
-# Luego abre: http://localhost:8080
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-O simplemente haz doble clic en `index.html` (abre como archivo local).
-Asegúrate de que en `app.js` esté:
+Comprueba el backend:
 
-```js
-const API_BASE    = "http://127.0.0.1:8000";
-const USE_BACKEND = true;
+```text
+http://127.0.0.1:8000/health
 ```
 
----
+Documentación de la API:
 
-## I) COMANDOS EXACTOS PARA CORRERLO LOCALMENTE
-
-```bash
-# Terminal 1 — Backend
-cd proyecto_crediticio
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-
-# Terminal 2 — Frontend (opcional, también funciona con doble clic)
-cd proyecto_crediticio
-python -m http.server 8080
+```text
+http://127.0.0.1:8000/docs
 ```
 
----
+### Terminal 2: frontend
 
-## PRUEBAS
-
-### curl
-```bash
-curl -X POST http://127.0.0.1:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "Age": 38,
-    "Income": 72000,
-    "LoanAmount": 45000,
-    "CreditScore": 680,
-    "MonthsEmployed": 84,
-    "NumCreditLines": 3
-  }'
+```powershell
+.\.venv\Scripts\python.exe -m http.server 8080 --bind 127.0.0.1
 ```
 
-Respuesta esperada:
-```json
-{
-  "model": "XGBoost",
-  "default_probability": 0.3421,
-  "predicted_class": 0,
-  "risk_level": "Riesgo moderado",
-  "message": "Perfil aceptable. Considerar monto menor o garantía adicional.",
-  "timestamp": "2026-04-11T10:30:00.123456"
-}
+Abre la aplicación:
+
+```text
+http://127.0.0.1:8080
 ```
 
-### Python (desde notebook o script)
-```python
-import requests
+Si el navegador muestra una versión anterior, utiliza `Ctrl + F5`.
 
-payload = {
-    "Age": 38,
-    "Income": 72000,
-    "LoanAmount": 45000,
-    "CreditScore": 680,
-    "MonthsEmployed": 84,
-    "NumCreditLines": 3
-}
+## Detener la aplicación
 
-r = requests.post("http://127.0.0.1:8000/predict", json=payload)
-print(r.json())
+Presiona `Ctrl + C` en cada terminal.
+
+## Crear el paquete para Google Drive
+
+El responsable del proyecto puede generar automáticamente el ZIP de archivos
+pesados ejecutando:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\prepare_drive_package.ps1
 ```
 
-### Postman
-- Method: POST
-- URL: http://127.0.0.1:8000/predict
-- Body → raw → JSON → pegar el payload de arriba
-- Send
+Se creará:
 
-### Swagger UI (la más fácil para demo)
-Abre http://127.0.0.1:8000/docs → POST /predict → "Try it out" → pegar valores → Execute
-
----
-
-## J) DOCKER (OPCIONAL — solo si presentas en servidor externo)
-
-```dockerfile
-# Dockerfile (no necesario para demo local)
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```text
+CreditMind_Drive_Package.zip
 ```
 
-```bash
-# Solo si tienes Docker instalado y quieres desplegar en la nube
-docker build -t sistema-crediticio .
-docker run -p 8000:8000 sistema-crediticio
+El ZIP contiene el dataset, el registro de modelos, la lista de variables y los
+cuatro modelos entrenados. Después sólo debe subirse a Google Drive.
+
+## Publicar el código en GitHub
+
+Los modelos y datasets están excluidos mediante `.gitignore`, por lo que no se
+subirán accidentalmente.
+
+```powershell
+git add .
+git status
+git commit -m "Actualiza CreditMind y documentacion"
+git push -u origin main
 ```
 
-**Conclusión**: para la demo de hoy, no uses Docker.
+Antes del commit verifica que no aparezcan archivos `.pkl`, `.csv`, `.env` ni
+la carpeta `.venv`.
 
----
+## Configurar Google Drive
 
-## FLUJO CORRECTO COMPLETO
+1. Ejecuta `prepare_drive_package.ps1`.
+2. Abre Google Drive.
+3. Sube `CreditMind_Drive_Package.zip`.
+4. Haz clic derecho sobre el archivo y selecciona `Compartir`.
+5. Cambia el acceso a `Cualquier persona con el enlace`.
+6. Selecciona permiso de `Lector`.
+7. Copia el enlace.
+8. Sustituye en este README:
 
+```text
+REEMPLAZAR_CON_EL_ENLACE_PUBLICO_DE_GOOGLE_DRIVE
 ```
-1. notebook    → entrenas una vez con GridSearchCV
-2. notebook    → ejecutas export_artifacts.py → genera artifacts/
-3. terminal    → uvicorn app.main:app --reload
-4. navegador   → abres index.html
-5. sliders     → debounce 250ms → POST /predict → FastAPI → XGBoost → JSON
-6. formulario  → POST /predict + análisis IA vía Anthropic API
-7. historial   → registros en memoria de sesión
+
+por el enlace real.
+
+Después vuelve a realizar un commit y push:
+
+```powershell
+git add README.md
+git commit -m "Agrega enlace de descarga de artefactos"
+git push
 ```
+
+## Actualizar modelos
+
+Cuando se reentrenen los modelos:
+
+1. Ejecuta el notebook completo.
+2. Exporta los nuevos artefactos.
+3. Reemplaza los archivos dentro de `artifacts/trained_models/`.
+4. Actualiza `features.json` y `model_registry_notebook.json`.
+5. Ejecuta nuevamente `prepare_drive_package.ps1`.
+6. Reemplaza el ZIP en Google Drive.
+7. Reinicia FastAPI.
+
+## Dataset en otra ubicación
+
+El backend busca `Loan_default_limpio.csv` en:
+
+1. La raíz del repositorio.
+2. La carpeta `data/`.
+3. La carpeta `artifacts/`.
+4. La ruta definida mediante `CREDITMIND_DATASET`.
+
+Ejemplo:
+
+```powershell
+$env:CREDITMIND_DATASET="D:\datasets\Loan_default_limpio.csv"
+```
+
+## Errores comunes
+
+### API no conectada
+
+Confirma que el backend esté ejecutándose y visita:
+
+```text
+http://127.0.0.1:8000/health
+```
+
+### Puerto ocupado
+
+```powershell
+netstat -ano | findstr :8000
+Stop-Process -Id NUMERO_PID -Force
+```
+
+### Error al cargar modelos
+
+Comprueba que:
+
+- Los cuatro `.pkl` estén en `artifacts/trained_models/`.
+- `model_registry_notebook.json` exista.
+- Las versiones de `scikit-learn`, `numpy` y `xgboost` sean compatibles.
+
+## Nota académica
+
+CreditMind es un prototipo académico. Sus resultados no deben utilizarse como
+único criterio para aprobar o rechazar créditos reales.
+"# Creditmind2.0"  
