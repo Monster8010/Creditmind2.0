@@ -228,6 +228,13 @@ def dataset_path() -> Path:
     )
 
 
+def available_dataset_path() -> Path | None:
+    for candidate in DATASET_CANDIDATES:
+        if candidate and candidate.exists():
+            return candidate
+    return None
+
+
 def load_dataset() -> pd.DataFrame:
     path = dataset_path()
     df = pd.read_csv(path)
@@ -575,11 +582,25 @@ def enrich_model_for_dashboard(algorithm: str, meta: dict[str, Any]) -> dict[str
 
 @app.get("/health", tags=["Sistema"])
 def health_check():
+    dataset = available_dataset_path()
+    registry = read_registry()
     return {
         "status": "ok",
-        "dataset_available": dataset_path().exists(),
+        "dataset_available": dataset is not None,
+        "dataset_path": str(dataset) if dataset else None,
+        "models_available": list(registry.keys()),
         "runs_saved": len(read_runs()),
         "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/", tags=["Sistema"])
+def root():
+    return {
+        "service": "CreditMind API",
+        "status": "online",
+        "health": "/health",
+        "docs": "/docs",
     }
 
 
