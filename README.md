@@ -290,4 +290,3 @@ Comprueba que:
 
 CreditMind es un prototipo académico. Sus resultados no deben utilizarse como
 único criterio para aprobar o rechazar créditos reales.
-"# Creditmind2.0"  
