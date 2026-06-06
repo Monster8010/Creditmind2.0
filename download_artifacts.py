@@ -1,6 +1,7 @@
 """Descarga y extrae los artefactos pesados durante el despliegue."""
 
 import os
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -34,7 +35,21 @@ def main() -> None:
         raise RuntimeError("El archivo descargado no es un ZIP válido.")
 
     with zipfile.ZipFile(ZIP_PATH) as package:
-        package.extractall(BASE_DIR)
+        print("Contenido del paquete:")
+        for member in package.infolist():
+            normalized_name = member.filename.replace("\\", "/").lstrip("/")
+            print(f"  {normalized_name}")
+
+            if not normalized_name or normalized_name.endswith("/"):
+                continue
+
+            destination = (BASE_DIR / normalized_name).resolve()
+            if not destination.is_relative_to(BASE_DIR.resolve()):
+                raise RuntimeError(f"Ruta no segura dentro del ZIP: {member.filename}")
+
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            with package.open(member) as source, destination.open("wb") as target:
+                shutil.copyfileobj(source, target)
 
     ZIP_PATH.unlink(missing_ok=True)
 
