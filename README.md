@@ -35,7 +35,7 @@ Los archivos pesados se distribuyen mediante Google Drive:
 Enlace de Google Drive:
 
 ```text
-REEMPLAZAR_CON_EL_ENLACE_PUBLICO_DE_GOOGLE_DRIVE
+https://drive.google.com/file/d/1XHzz3tCLkC05c8U4HN5FXOY1jzsqIRdT/view?usp=drive_link
 ```
 
 ## Requisitos
