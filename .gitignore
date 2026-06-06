@@ -34,4 +34,6 @@ data/
 
 # Paquetes generados para compartir por Drive
 CreditMind_Drive_Package.zip
+.creditmind_artifacts.zip
+drive_download_test.zip
 drive_package/

@@ -217,14 +217,8 @@ la carpeta `.venv`.
 4. Haz clic derecho sobre el archivo y selecciona `Compartir`.
 5. Cambia el acceso a `Cualquier persona con el enlace`.
 6. Selecciona permiso de `Lector`.
-7. Copia el enlace.
-8. Sustituye en este README:
-
-```text
-REEMPLAZAR_CON_EL_ENLACE_PUBLICO_DE_GOOGLE_DRIVE
-```
-
-por el enlace real.
+7. Copia el enlace y actualiza el enlace de Google Drive incluido al inicio de
+   este README cuando el archivo sea reemplazado.
 
 Después vuelve a realizar un commit y push:
 

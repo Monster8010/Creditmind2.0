@@ -408,7 +408,7 @@ def load_saved_model(algorithm: str) -> tuple[str, dict[str, Any], Any]:
         )
 
     meta = registry[canonical]
-    model_path = Path(meta["model_path"])
+    model_path = Path(str(meta["model_path"]).replace("\\", "/"))
     if not model_path.is_absolute():
         model_path = BASE_DIR / model_path
 
